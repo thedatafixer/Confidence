@@ -1,0 +1,645 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Intervalos de confianza</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+:root{
+  --bg:#f4f2ec;
+  --surface:#fffefb;
+  --ink:#1b2130;
+  --muted:#5a6173;
+  --line:#d8d3c6;
+  --accent:#1f4a6b;
+  --ok:#2c6a3d;   --ok-soft:#e3efe5;
+  --bad:#8c2b2b;  --bad-soft:#f5e2df;
+  --warn:#72500f; --warn-soft:#f6eed8;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.55 var(--sans);
+  padding-block:24px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:860px;margin:0 auto;min-width:0}
+h1{font:600 28px/1.2 var(--serif);margin:0 0 6px;text-wrap:balance}
+.lead{color:var(--muted);margin:0 0 22px;max-width:62ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;margin:0 0 16px;min-width:0}
+.card h2{font:600 15px/1.3 var(--sans);margin:0 0 12px;letter-spacing:.01em}
+.muted{color:var(--muted);margin:.4em 0}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:0 0 12px}
+.field{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;min-width:0}
+.field label{font-size:13px;color:var(--muted)}
+select{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+select:disabled{opacity:.55}
+button{font:600 14px var(--sans);background:var(--accent);color:#fff;border:0;border-radius:4px;padding:10px 18px;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.drop{border:1.5px dashed var(--line);border-radius:6px;padding:20px;text-align:center;background:#fbfaf6;margin:0 0 12px}
+.drop p{margin:.2em 0}
+.filebtn{position:relative;display:inline-block;margin:8px 0;background:var(--accent);color:#fff;border-radius:4px;padding:9px 16px;font-weight:600;cursor:pointer}
+.filebtn input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.filebtn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--accent);border-radius:4px;overflow:hidden;position:relative;max-width:100%}
+.seg label{padding:8px 16px;cursor:pointer;color:var(--accent);font-weight:500;background:#fff;border-right:1px solid var(--accent)}
+.seg label:last-of-type{border-right:0}
+.sr{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.sr:checked + label{background:var(--accent);color:#fff}
+.sr:focus-visible + label{outline:2px solid var(--accent);outline-offset:-4px}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin:0 0 16px}
+.tab{background:none;color:var(--muted);font-weight:500;border-radius:0;padding:10px 12px;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{filter:none;color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.banner{margin:10px 0;padding:10px 12px;border-radius:4px;font-size:14px}
+.banner p{margin:0}
+.banner.ok{background:var(--ok-soft);color:var(--ok)}
+.banner.bad{background:var(--bad-soft);color:var(--bad)}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.test{margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.test p{margin:.25em 0}
+.ci{margin-top:14px}
+.ci-title{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 4px}
+.ci-range{font:500 clamp(22px,5vw,30px)/1.3 var(--mono);margin:0 0 4px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.formula{font-family:var(--mono);font-size:13px;color:var(--muted);margin:0}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 18px;margin:14px 0 0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0}
+.interp{margin:14px 0 0}
+.tblwrap{overflow-x:auto;margin:8px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500}
+.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+</style>
+
+<div class="wrap">
+  <h1>Intervalos de confianza</h1>
+  <p class="lead">Carga una planilla de Excel o CSV, elige el nivel de confianza y el caso. Todo el cálculo se hace en tu navegador.</p>
+
+  <section class="card">
+    <h2>1. Archivo de datos</h2>
+    <div class="drop" id="drop">
+      <p>Arrastra aquí tu archivo (.xlsx, .xls, .csv o .ods)</p>
+      <label class="filebtn">Elegir archivo<input id="file" type="file" accept=".xlsx,.xls,.csv,.ods"></label>
+      <p class="muted" id="fileinfo">Ningún archivo cargado. La primera fila se usa como encabezado.</p>
+    </div>
+    <p class="banner bad" id="fileerr" hidden></p>
+    <div class="row">
+      <div class="field">
+        <label for="sheet">Hoja</label>
+        <select id="sheet" disabled><option>Sin datos</option></select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Nivel de confianza</h2>
+    <div class="seg" role="radiogroup" aria-label="Nivel de confianza">
+      <input class="sr" type="radio" name="lvl" id="l90" value="0.90"><label for="l90">90%</label>
+      <input class="sr" type="radio" name="lvl" id="l95" value="0.95" checked><label for="l95">95%</label>
+      <input class="sr" type="radio" name="lvl" id="l99" value="0.99"><label for="l99">99%</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Caso</h2>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-case="1">1. Media</button>
+      <button class="tab" role="tab" aria-selected="false" data-case="2">2. Proporción</button>
+      <button class="tab" role="tab" aria-selected="false" data-case="3">3. Medias independientes</button>
+      <button class="tab" role="tab" aria-selected="false" data-case="4">4. Medias apareadas</button>
+      <button class="tab" role="tab" aria-selected="false" data-case="5">5. Proporciones independientes</button>
+    </div>
+
+    <div class="panel" id="p1">
+      <div class="row">
+        <div class="field"><label for="c1">Variable cuantitativa</label><select id="c1"></select></div>
+      </div>
+      <p class="muted">Se verifica normalidad con Shapiro-Wilk (α = 0,05). Si la variable no es normal, no se calcula el intervalo.</p>
+    </div>
+
+    <div class="panel" id="p2" hidden>
+      <div class="row">
+        <div class="field"><label for="c2">Variable categórica</label><select id="c2"></select></div>
+        <div class="field"><label for="c2s">Categoría de éxito</label><select id="c2s"></select></div>
+      </div>
+      <p class="muted">p = número de éxitos / número de filas con valor.</p>
+    </div>
+
+    <div class="panel" id="p3" hidden>
+      <div class="row">
+        <div class="seg" role="radiogroup" aria-label="Forma de los datos">
+          <input class="sr" type="radio" name="m3" id="m3c" value="cols" checked><label for="m3c">Una columna por muestra</label>
+          <input class="sr" type="radio" name="m3" id="m3l" value="long"><label for="m3l">Columna de grupo y valor</label>
+        </div>
+      </div>
+      <div id="c3cols">
+        <div class="row">
+          <div class="field"><label for="a3">Muestra 1 (columna)</label><select id="a3"></select></div>
+          <div class="field"><label for="b3">Muestra 2 (columna)</label><select id="b3"></select></div>
+        </div>
+      </div>
+      <div id="c3long" hidden>
+        <div class="row">
+          <div class="field"><label for="g3">Columna de grupo</label><select id="g3"></select></div>
+          <div class="field"><label for="g3a">Grupo 1</label><select id="g3a"></select></div>
+          <div class="field"><label for="g3b">Grupo 2</label><select id="g3b"></select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="v3">Columna de valor</label><select id="v3"></select></div>
+        </div>
+      </div>
+      <p class="muted">Se verifica igualdad de varianzas (prueba F) y normalidad en ambas muestras. Si las varianzas difieren se usa la alternativa de Welch.</p>
+    </div>
+
+    <div class="panel" id="p4" hidden>
+      <div class="row">
+        <div class="field"><label for="a4">Medición 1</label><select id="a4"></select></div>
+        <div class="field"><label for="b4">Medición 2</label><select id="b4"></select></div>
+      </div>
+      <p class="muted">Cada fila es un par. Se usan las filas con ambos valores numéricos y la diferencia es Medición 1 menos Medición 2. Se verifica normalidad de las diferencias.</p>
+    </div>
+
+    <div class="panel" id="p5" hidden>
+      <div class="row">
+        <div class="field"><label for="g5">Columna de grupo</label><select id="g5"></select></div>
+        <div class="field"><label for="g5a">Grupo 1</label><select id="g5a"></select></div>
+        <div class="field"><label for="g5b">Grupo 2</label><select id="g5b"></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="o5">Columna de resultado</label><select id="o5"></select></div>
+        <div class="field"><label for="o5s">Categoría de éxito</label><select id="o5s"></select></div>
+      </div>
+      <p class="muted">p de cada grupo = éxitos / filas con resultado. La diferencia es Grupo 1 menos Grupo 2.</p>
+    </div>
+
+    <div class="row"><button id="calc" type="button">Calcular intervalo</button></div>
+  </section>
+
+  <section class="card" id="result" aria-live="polite">
+    <p class="muted">Carga un archivo, elige el caso y pulsa Calcular.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script id="stats">
+/* ---------- Funciones estadisticas (sin DOM) ---------- */
+const mean = a => a.reduce((s,x)=>s+x,0)/a.length;
+const variance = a => { const m=mean(a); return a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1); };
+
+function erfcc(x){
+  const z=Math.abs(x), t=1/(1+0.5*z);
+  const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0 ? r : 2-r;
+}
+function pnorm(x){ return 0.5*erfcc(-x/Math.SQRT2); }
+
+function qnorm(p){
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425, ph=1-pl;
+  let q,r;
+  if(p<pl){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if(p>ph){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  q=p-0.5; r=q*q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+
+function lnGamma(z){
+  const cf=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61503916999385,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  z-=1; let x=cf[0];
+  for(let i=1;i<9;i++) x+=cf[i]/(z+i);
+  const t=z+7.5;
+  return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);
+}
+function betacf(x,a,b){
+  const MAXIT=300, EPS=3e-12, FPMIN=1e-300;
+  const qab=a+b, qap=a+1, qam=a-1;
+  let c=1, d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN) d=FPMIN;
+  d=1/d; let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    const m2=2*m;
+    let aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN) d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN) d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    d=1/d; const del=d*c; h*=del;
+    if(Math.abs(del-1)<EPS) break;
+  }
+  return h;
+}
+function incBeta(x,a,b){
+  if(x<=0) return 0;
+  if(x>=1) return 1;
+  const bt=Math.exp(lnGamma(a+b)-lnGamma(a)-lnGamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  if(x<(a+1)/(a+b+2)) return bt*betacf(x,a,b)/a;
+  return 1-bt*betacf(1-x,b,a)/b;
+}
+function tCdf(t,df){
+  const x=df/(df+t*t);
+  const p=0.5*incBeta(x,df/2,0.5);
+  return t>0 ? 1-p : p;
+}
+function tInv(p,df){
+  let lo=0, hi=1000;
+  for(let i=0;i<200;i++){ const mid=(lo+hi)/2; if(tCdf(mid,df)<p) lo=mid; else hi=mid; }
+  return (lo+hi)/2;
+}
+
+/* Shapiro-Wilk (algoritmo AS R94, Royston), 3 <= n <= 5000 */
+function swilk(xIn){
+  const x=xIn.slice().sort((a,b)=>a-b), n=x.length;
+  if(n<3) throw new Error('Se requieren al menos 3 datos para Shapiro-Wilk.');
+  if(n>5000) throw new Error('Shapiro-Wilk se aplica hasta 5000 datos.');
+  const mu=mean(x);
+  const SS=x.reduce((s,v)=>s+(v-mu)*(v-mu),0);
+  if(SS<=0) return {W:1,p:1,n};
+  const poly=(cc,z)=>{ let r=0; for(let i=cc.length-1;i>=0;i--) r=r*z+cc[i]; return r; };
+  const c1=[0,0.221157,-0.147981,-2.07119,4.434685,-2.706056];
+  const c2=[0,0.042981,-0.293762,-1.752461,5.682633,-3.582633];
+  const c3=[0.544,-0.39978,0.025054,-0.0006714];
+  const c4=[1.3822,-0.77857,0.062767,-0.0020322];
+  const c5=[-1.5861,-0.31082,-0.083751,0.0038915];
+  const c6=[-0.4803,-0.082676,0.0030302];
+  const g=[-2.273,0.459];
+  const n2=Math.floor(n/2);
+  const a=new Array(n2+1).fill(0);
+  if(n===3){
+    a[1]=Math.SQRT1_2;
+  } else {
+    const m=new Array(n2+1).fill(0);
+    for(let i=1;i<=n2;i++) m[i]=qnorm((i-0.375)/(n+0.25));
+    let summ2=0; for(let i=1;i<=n2;i++) summ2+=m[i]*m[i];
+    summ2*=2;
+    const ssumm2=Math.sqrt(summ2), rsn=1/Math.sqrt(n);
+    const a1=poly(c1,rsn)-m[1]/ssumm2;
+    let i1, fac;
+    if(n>5){
+      i1=3;
+      const a2=-m[2]/ssumm2+poly(c2,rsn);
+      fac=Math.sqrt((summ2-2*m[1]*m[1]-2*m[2]*m[2])/(1-2*a1*a1-2*a2*a2));
+      a[2]=a2;
+    } else {
+      i1=2;
+      fac=Math.sqrt((summ2-2*m[1]*m[1])/(1-2*a1*a1));
+    }
+    a[1]=a1;
+    for(let i=i1;i<=n2;i++) a[i]=-m[i]/fac;
+  }
+  let b=0;
+  for(let i=1;i<=n2;i++) b+=a[i]*(x[n-i]-x[i-1]);
+  let W=b*b/SS;
+  if(W>1) W=1;
+  if(W<0) W=0;
+  let p;
+  if(n===3){
+    p=1.9098593171027440*(Math.asin(Math.sqrt(W))-1.0471975511965976);
+  } else {
+    const lw=Math.log(Math.max(1-W,1e-300));
+    if(n<=11){
+      const gamma=poly(g,n);
+      if(lw>=gamma){ p=1e-99; }
+      else {
+        const y=-Math.log(gamma-lw);
+        const mm=poly(c3,n), s=Math.exp(poly(c4,n));
+        p=1-pnorm((y-mm)/s);
+      }
+    } else {
+      const xx=Math.log(n);
+      const mm=poly(c5,xx), s=Math.exp(poly(c6,xx));
+      p=1-pnorm((lw-mm)/s);
+    }
+  }
+  p=Math.min(1,Math.max(0,p));
+  return {W:W,p:p,n:n};
+}
+
+/* Prueba F de igualdad de varianzas (dos colas) */
+function ftest(a,b){
+  const va=variance(a), vb=variance(b);
+  if(va<=0||vb<=0) throw new Error('Una de las muestras no tiene variabilidad.');
+  let F,d1,d2;
+  if(va>=vb){ F=va/vb; d1=a.length-1; d2=b.length-1; }
+  else { F=vb/va; d1=b.length-1; d2=a.length-1; }
+  const cdf=incBeta(d1*F/(d1*F+d2),d1/2,d2/2);
+  const p=Math.min(1,2*Math.min(cdf,1-cdf));
+  return {F:F,d1:d1,d2:d2,p:p};
+}
+</script>
+
+<script id="app">
+const state={wb:null,headers:[],rows:[],name:''};
+const $=id=>document.getElementById(id);
+const val=id=>$(id).value;
+const isMissing=v=>v===null||v===undefined||String(v).trim()==='';
+const colVals=i=>state.rows.map(r=>r[i]);
+const esc=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const fmt=(v,d=4)=>Number(v).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fp=p=>p<0.0001?'< 0,0001':fmt(p,4);
+const pct=v=>fmt(v*100,2)+' %';
+const ALPHA=0.05;
+const level=()=>+document.querySelector('input[name="lvl"]:checked').value;
+const pctLabel=()=>Math.round(level()*100)+'%';
+const tailP=()=>1-(1-level())/2;
+
+function toNum(v){
+  if(isMissing(v)) return null;
+  if(typeof v==='number') return isFinite(v)?v:null;
+  let s=String(v).trim().replace(/\s/g,'');
+  if(/^-?\d{1,3}(\.\d{3})+,\d+$/.test(s)) s=s.replace(/\./g,'').replace(',','.');
+  else if(/^-?\d+,\d+$/.test(s)) s=s.replace(',','.');
+  const n=Number(s);
+  return isFinite(n)?n:null;
+}
+function levelsOf(i){
+  const s=new Set();
+  colVals(i).forEach(v=>{ if(!isMissing(v)) s.add(String(v).trim()); });
+  return [...s].sort((a,b)=>a.localeCompare(b,'es')).slice(0,300);
+}
+function setOptions(sel,items,ph){
+  sel.innerHTML='';
+  if(ph){ const o=document.createElement('option'); o.value=''; o.textContent=ph; sel.appendChild(o); }
+  items.forEach(it=>{ const o=document.createElement('option'); o.value=it.value; o.textContent=it.label; sel.appendChild(o); });
+}
+function fillLevels(colId,targets){
+  const c=val(colId);
+  targets.forEach(t=>{
+    if(c==='') setOptions($(t),[],'Elige columna primero');
+    else setOptions($(t),levelsOf(+c).map(v=>({value:v,label:v})),'Elegir');
+  });
+}
+function need(id,msg){ const v=val(id); if(v==='') throw new Error(msg); return v; }
+function banner(kind,text){ return `<p class="banner ${kind}">${text}</p>`; }
+function swBlock(label,sw){
+  const ok=sw.p>=ALPHA;
+  return `<div class="test"><p><strong>Normalidad (${esc(label)}):</strong> Shapiro-Wilk, n = ${sw.n}, W = ${fmt(sw.W)}, p = ${fp(sw.p)}.</p>`+
+    banner(ok?'ok':'bad', ok?'Se cumple el supuesto de normalidad (p ≥ 0,05).':'No se cumple el supuesto de normalidad (p < 0,05).')+`</div>`;
+}
+function skipNote(k){ return k>0?`<p class="muted">Se excluyeron ${k} filas sin valor numérico.</p>`:''; }
+function ciCard(o){
+  return `<div class="ci">
+    <p class="ci-title">${o.title}</p>
+    <p class="ci-range">[ ${o.lo} ; ${o.hi} ]</p>
+    <p class="formula">${o.formula}</p>
+    <dl class="kv">${o.kv.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    <p class="interp">${o.interp}</p>
+  </div>`;
+}
+function tableHTML(head,rowsArr){
+  return `<div class="tblwrap"><table><thead><tr>${head.map((h,i)=>`<th${i?' class="num"':''}>${h}</th>`).join('')}</tr></thead><tbody>${rowsArr.map(r=>`<tr>${r.map((c,i)=>`<td${i?' class="num"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ---------- Casos ---------- */
+function case1(){
+  const i=+need('c1','Elige la variable.');
+  const name=state.headers[i];
+  const all=colVals(i);
+  const vals=all.map(toNum).filter(v=>v!==null);
+  if(vals.length<3) throw new Error(`Se necesitan al menos 3 valores numéricos en "${name}".`);
+  const sw=swBlock(name,swilk(vals));
+  let h=sw+skipNote(all.length-vals.length);
+  const s0=swilk(vals);
+  if(s0.p<ALPHA) return h+banner('bad','No se calcula el intervalo porque la variable no cumple el supuesto de normalidad.');
+  const n=vals.length, m=mean(vals), s=Math.sqrt(variance(vals)), df=n-1;
+  const t=tInv(tailP(),df), se=s/Math.sqrt(n), e=t*se;
+  h+=ciCard({
+    title:'Intervalo para la media',
+    lo:fmt(m-e), hi:fmt(m+e),
+    formula:'x̄ ± t(n−1) · s / √n',
+    kv:[['Media muestral (x̄)',fmt(m)],['Desviación estándar (s)',fmt(s)],['n',n],['Error estándar',fmt(se)],['Grados de libertad',df],['t crítico',fmt(t)],['Margen de error',fmt(e)]],
+    interp:`Con ${pctLabel()} de confianza, el intervalo (${fmt(m-e)}; ${fmt(m+e)}) contiene al promedio poblacional de "${esc(name)}".`
+  });
+  return h;
+}
+
+function case2(){
+  const i=+need('c2','Elige la variable categórica.');
+  const sIdx=need('c2s','Elige la categoría de éxito.');
+  const success=sIdx;
+  const vals=colVals(i).filter(v=>!isMissing(v)).map(v=>String(v).trim());
+  const n=vals.length;
+  if(n<1) throw new Error('La columna no tiene datos.');
+  const x=vals.filter(v=>v===success).length;
+  const ph=x/n;
+  const z=qnorm(tailP());
+  const se=Math.sqrt(ph*(1-ph)/n), e=z*se;
+  let h=`<p class="muted">Éxitos: ${x} de ${n} filas. p = ${fmt(ph)}.</p>`;
+  if(n*ph<5||n*(1-ph)<5) h+=banner('warn','Hay menos de 5 éxitos o de 5 fracasos. La aproximación normal puede ser poco precisa, así que interpreta el intervalo con cautela.');
+  h+=ciCard({
+    title:'Intervalo para la proporción',
+    lo:fmt(ph-e), hi:fmt(ph+e),
+    formula:'p ± z · √(p(1−p)/n)',
+    kv:[['Proporción muestral (p)',fmt(ph)],['n',n],['Error estándar',fmt(se)],['z crítico',fmt(z)],['Margen de error',fmt(e)]],
+    interp:`Con ${pctLabel()} de confianza, el intervalo (${fmt(ph-e)}; ${fmt(ph+e)}) contiene al parámetro π (proporción poblacional).`
+  });
+  return h;
+}
+
+function case3(){
+  let a,b,labelA,labelB;
+  const mode=document.querySelector('input[name="m3"]:checked').value;
+  if(mode==='cols'){
+    const ia=+need('a3','Elige la columna de la muestra 1.');
+    const ib=+need('b3','Elige la columna de la muestra 2.');
+    a=colVals(ia).map(toNum).filter(v=>v!==null);
+    b=colVals(ib).map(toNum).filter(v=>v!==null);
+    labelA=state.headers[ia]; labelB=state.headers[ib];
+  } else {
+    const ig=+need('g3','Elige la columna de grupo.');
+    const gA=need('g3a','Elige el grupo 1.');
+    const gB=need('g3b','Elige el grupo 2.');
+    const iv=+need('v3','Elige la columna de valor.');
+    if(gA===gB) throw new Error('Los dos grupos deben ser distintos.');
+    a=[]; b=[];
+    colVals(ig).forEach((g,k)=>{
+      const gs=isMissing(g)?'':String(g).trim();
+      const v=toNum(state.rows[k][iv]);
+      if(v===null) return;
+      if(gs===gA) a.push(v); else if(gs===gB) b.push(v);
+    });
+    labelA=gA; labelB=gB;
+  }
+  if(a.length<3||b.length<3) throw new Error('Cada muestra necesita al menos 3 valores numéricos.');
+  const swA=swilk(a), swB=swilk(b);
+  let h=swBlock(labelA,swA)+swBlock(labelB,swB);
+  if(swA.p<ALPHA||swB.p<ALPHA) return h+banner('bad','No se calcula el intervalo porque al menos una muestra no cumple el supuesto de normalidad.');
+  const na=a.length, nb=b.length, ma=mean(a), mb=mean(b), va=variance(a), vb=variance(b);
+  const ft=ftest(a,b);
+  const equal=ft.p>=ALPHA;
+  h+=`<div class="test"><p><strong>Igualdad de varianzas</strong> (prueba F, α = 0,05): F = ${fmt(ft.F)}, gl = ${ft.d1} y ${ft.d2}, p = ${fp(ft.p)}.</p>`+
+    banner(equal?'ok':'warn', equal?'Se cumple la igualdad de varianzas: se usa la t con varianza agrupada.':'No se cumple la igualdad de varianzas: se usa la alternativa de Welch.')+`</div>`;
+  let se,df,method;
+  if(equal){
+    const sp2=((na-1)*va+(nb-1)*vb)/(na+nb-2);
+    se=Math.sqrt(sp2*(1/na+1/nb));
+    df=na+nb-2;
+    method='t con varianza agrupada';
+  } else {
+    const v1=va/na, v2=vb/nb;
+    se=Math.sqrt(v1+v2);
+    df=(v1+v2)*(v1+v2)/(v1*v1/(na-1)+v2*v2/(nb-1));
+    method='t de Welch';
+  }
+  const t=tInv(tailP(),df), diff=ma-mb, e=t*se;
+  h+=ciCard({
+    title:'Intervalo para la diferencia de medias',
+    lo:fmt(diff-e), hi:fmt(diff+e),
+    formula:equal?'(x̄1 − x̄2) ± t · sp · √(1/n1 + 1/n2)':'(x̄1 − x̄2) ± t · √(s1²/n1 + s2²/n2)',
+    kv:[['Método',method],[`Media ${esc(labelA)} (n = ${na})`,fmt(ma)],[`Media ${esc(labelB)} (n = ${nb})`,fmt(mb)],['Diferencia (1 − 2)',fmt(diff)],['Error estándar',fmt(se)],['Grados de libertad',fmt(df,2)],['t crítico',fmt(t)],['Margen de error',fmt(e)]],
+    interp:`Con ${pctLabel()} de confianza, el intervalo (${fmt(diff-e)}; ${fmt(diff+e)}) contiene al parámetro μ1-μ2 (diferencia de medias poblacionales, ${esc(labelA)} menos ${esc(labelB)}).`
+  });
+  return h;
+}
+
+function case4(){
+  const ia=+need('a4','Elige la medición 1.');
+  const ib=+need('b4','Elige la medición 2.');
+  if(ia===ib) throw new Error('Elige dos columnas distintas.');
+  const A=colVals(ia), B=colVals(ib);
+  const d=[];
+  let skipped=0;
+  for(let k=0;k<A.length;k++){
+    const x=toNum(A[k]), y=toNum(B[k]);
+    if(x===null||y===null){ skipped++; continue; }
+    d.push(x-y);
+  }
+  if(d.length<3) throw new Error('Se necesitan al menos 3 pares completos.');
+  const sw=swilk(d);
+  let h=`<p class="muted">Pares usados: ${d.length}. Filas sin par completo: ${skipped}.</p>`+swBlock('diferencias',sw);
+  if(sw.p<ALPHA) return h+banner('bad','No se calcula el intervalo porque las diferencias no cumplen el supuesto de normalidad.');
+  const n=d.length, md=mean(d), sd=Math.sqrt(variance(d)), df=n-1;
+  const t=tInv(tailP(),df), se=sd/Math.sqrt(n), e=t*se;
+  h+=ciCard({
+    title:'Intervalo para la diferencia media apareada',
+    lo:fmt(md-e), hi:fmt(md+e),
+    formula:'d̄ ± t(n−1) · s_d / √n',
+    kv:[['Diferencia media (d̄)',fmt(md)],['Desviación estándar de d (s_d)',fmt(sd)],['n (pares)',n],['Error estándar',fmt(se)],['Grados de libertad',df],['t crítico',fmt(t)],['Margen de error',fmt(e)]],
+    interp:`Con ${pctLabel()} de confianza, el intervalo (${fmt(md-e)}; ${fmt(md+e)}) contiene al parámetro μd (diferencia media poblacional, ${esc(state.headers[ia])} menos ${esc(state.headers[ib])}).`
+  });
+  return h;
+}
+
+function case5(){
+  const ig=+need('g5','Elige la columna de grupo.');
+  const gA=need('g5a','Elige el grupo 1.');
+  const gB=need('g5b','Elige el grupo 2.');
+  const io=+need('o5','Elige la columna de resultado.');
+  const os=need('o5s','Elige la categoría de éxito.');
+  if(gA===gB) throw new Error('Los dos grupos deben ser distintos.');
+  let n1=0,x1=0,n2=0,x2=0;
+  const gv=colVals(ig), ov=colVals(io);
+  gv.forEach((g,k)=>{
+    if(isMissing(ov[k])) return;
+    const gs=isMissing(g)?'':String(g).trim();
+    const res=String(ov[k]).trim();
+    if(gs===gA){ n1++; if(res===os) x1++; }
+    else if(gs===gB){ n2++; if(res===os) x2++; }
+  });
+  if(n1<1||n2<1) throw new Error('Cada grupo necesita al menos una fila con resultado.');
+  const p1=x1/n1, p2=x2/n2, diff=p1-p2;
+  const se=Math.sqrt(p1*(1-p1)/n1+p2*(1-p2)/n2);
+  const z=qnorm(tailP()), e=z*se;
+  let h=tableHTML(['Grupo','n','Éxitos','p'],[
+    [esc(gA),n1,x1,fmt(p1)],
+    [esc(gB),n2,x2,fmt(p2)]
+  ]);
+  if(n1*p1<5||n1*(1-p1)<5||n2*p2<5||n2*(1-p2)<5) h+=banner('warn','Algún grupo tiene menos de 5 éxitos o de 5 fracasos. La aproximación normal puede ser poco precisa.');
+  h+=ciCard({
+    title:'Intervalo para la diferencia de proporciones',
+    lo:fmt(diff-e), hi:fmt(diff+e),
+    formula:'(p1 − p2) ± z · √(p1(1−p1)/n1 + p2(1−p2)/n2)',
+    kv:[['Diferencia (p1 − p2)',fmt(diff)],['Error estándar',fmt(se)],['z crítico',fmt(z)],['Margen de error',fmt(e)]],
+    interp:`Con ${pctLabel()} de confianza, el intervalo (${fmt(diff-e)}; ${fmt(diff+e)}) contiene al parámetro π1-π2 (diferencia de proporciones poblacionales, ${esc(gA)} menos ${esc(gB)}).`
+  });
+  return h;
+}
+
+const CASES={1:case1,2:case2,3:case3,4:case4,5:case5};
+let activeCase=1;
+
+function showResult(html){ $('result').innerHTML=html; }
+function setCase(c){
+  activeCase=c;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',String(+t.dataset.case===c)));
+  for(let k=1;k<=5;k++) $('p'+k).hidden=(k!==c);
+  showResult('<p class="muted">Elige los datos y pulsa Calcular intervalo.</p>');
+}
+
+function populateColumns(){
+  const items=state.headers.map((h,i)=>({value:String(i),label:h}));
+  ['c1','c2','a3','b3','g3','v3','a4','b4','g5','o5'].forEach(id=>setOptions($(id),items,'Elegir columna'));
+  ['c2s','g3a','g3b','g5a','g5b','o5s'].forEach(id=>setOptions($(id),[],'Elige columna primero'));
+}
+
+function loadSheet(name){
+  const ws=state.wb.Sheets[name];
+  const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,blankrows:false});
+  if(!arr.length){ throw new Error('La hoja está vacía.'); }
+  state.headers=arr[0].map((h,i)=>(isMissing(h)?'Columna '+(i+1):String(h).trim()));
+  state.rows=arr.slice(1).map(r=>{ const row=r.slice(); while(row.length<state.headers.length) row.push(null); return row; });
+  populateColumns();
+  $('fileinfo').textContent=`${state.name} · hoja "${name}" · ${state.rows.length} filas · ${state.headers.length} columnas`;
+  showResult('<p class="muted">Archivo cargado. Elige el caso y pulsa Calcular intervalo.</p>');
+}
+
+function showFileError(msg){
+  const e=$('fileerr'); e.textContent=msg; e.hidden=false;
+}
+function loadFile(f){
+  if(!f) return;
+  if(typeof XLSX==='undefined'){ showFileError('No se pudo cargar el lector de Excel. Revisa tu conexión y recarga la página.'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      $('fileerr').hidden=true;
+      state.wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      state.name=f.name;
+      const sel=$('sheet');
+      setOptions(sel,state.wb.SheetNames.map(n=>({value:n,label:n})));
+      sel.disabled=false;
+      loadSheet(state.wb.SheetNames[0]);
+    }catch(err){
+      showFileError('No se pudo leer el archivo: '+err.message);
+    }
+  };
+  reader.onerror=()=>showFileError('No se pudo leer el archivo.');
+  reader.readAsArrayBuffer(f);
+}
+
+/* ---------- Eventos ---------- */
+$('file').addEventListener('change',e=>loadFile(e.target.files[0]));
+const drop=$('drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.style.borderColor='var(--accent)'; }));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.style.borderColor=''; }));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.files[0]; loadFile(f); });
+$('sheet').addEventListener('change',e=>{
+  try{ $('fileerr').hidden=true; loadSheet(e.target.value); }
+  catch(err){ showFileError(err.message); }
+});
+$('c2').addEventListener('change',()=>fillLevels('c2',['c2s']));
+$('g3').addEventListener('change',()=>fillLevels('g3',['g3a','g3b']));
+$('g5').addEventListener('change',()=>fillLevels('g5',['g5a','g5b']));
+$('o5').addEventListener('change',()=>fillLevels('o5',['o5s']));
+document.querySelectorAll('input[name="m3"]').forEach(r=>r.addEventListener('change',()=>{
+  const long=document.querySelector('input[name="m3"]:checked').value==='long';
+  $('c3cols').hidden=long;
+  $('c3long').hidden=!long;
+}));
+document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>setCase(+btn.dataset.case)));
+$('calc').addEventListener('click',()=>{
+  if(!state.rows.length){ showResult(banner('warn','Primero carga un archivo.')); return; }
+  try{ showResult(CASES[activeCase]()); }
+  catch(err){ showResult(banner('bad',esc(err.message))); }
+});
+</script>
